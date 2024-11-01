@@ -1,6 +1,14 @@
 version: "3.9"
 
 services:
+  go-app:
+    container_name: go-app
+    build:
+      context: .
+    ports:
+      - "9002:9002"
+    depends_on:
+      - go_db
   go_db:
     container_name: go_db
     image: postgres:12
