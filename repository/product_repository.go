@@ -1,105 +1,54 @@
 package repository
 
 import (
-	"database/sql"
 	"fmt"
 	"go-api/model"
+
+	"gorm.io/gorm"
 )
 
 type ProductRepository struct {
-	conection *sql.DB
+	connection *gorm.DB
 }
 
-func NewProductRepository(conection *sql.DB) ProductRepository {
+// NewProductRepository inicializa o repositório com uma conexão GORM
+func NewProductRepository(connection *gorm.DB) ProductRepository {
 	return ProductRepository{
-		conection: conection,
+		connection: connection,
 	}
 }
 
+// GetProducts obtém todos os produtos
 func (pr *ProductRepository) GetProducts() ([]model.Product, error) {
-	query := "Select * from product"
-	rows, err := pr.conection.Query(query)
-
-	if err != nil {
-		fmt.Println(err)
-		return []model.Product{}, err
+	var productList []model.Product
+	result := pr.connection.Find(&productList)
+	if result.Error != nil {
+		fmt.Println(result.Error)
+		return []model.Product{}, result.Error
 	}
-
-	var productLista []model.Product
-	var productObj model.Product
-
-	for rows.Next() {
-		err = rows.Scan(
-			&productObj.ID,
-			&productObj.Name,
-			&productObj.Price)
-
-		if err != nil {
-			fmt.Println(err)
-			return []model.Product{}, err
-		}
-
-		productLista = append(productLista, productObj)
-	}
-
-	rows.Close()
-
-	return productLista, nil
+	return productList, nil
 }
 
+// CreateProduct cria um novo produto e retorna seu ID
 func (pr *ProductRepository) CreateProduct(product model.Product) (int, error) {
-
-	var id int
-
-	query, err := pr.conection.Prepare("INSERT INTO product " +
-		"(product_name, price)" +
-		" VALUES ($1, $2) RETURNING id")
-
-	if err != nil {
-		fmt.Println(err)
-		return 0, err
+	result := pr.connection.Create(&product)
+	if result.Error != nil {
+		fmt.Println(result.Error)
+		return 0, result.Error
 	}
-
-	err = query.QueryRow(product.Name, product.Price).Scan(&id)
-
-	if err != nil {
-		fmt.Println(err)
-		return 0, err
-	}
-
-	query.Close()
-
-	return id, nil
+	return int(product.ID), nil
 }
 
-func (pr *ProductRepository) GetProductById(product_id int) (*model.Product, error) {
-
-	query, err := pr.conection.Prepare("Select * from product where id = $1")
-
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
+// GetProductById obtém um produto pelo ID
+func (pr *ProductRepository) GetProductById(productID int) (*model.Product, error) {
 	var product model.Product
-
-	err = query.QueryRow(product_id).Scan(
-		&product.ID,
-		&product.Name,
-		&product.Price,
-	)
-
-	if err != nil {
-
-		if err == sql.ErrNoRows {
+	result := pr.connection.First(&product, productID)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
-
-		fmt.Println(err)
-		return nil, err
+		fmt.Println(result.Error)
+		return nil, result.Error
 	}
-
-	query.Close()
-
 	return &product, nil
 }
