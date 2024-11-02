@@ -90,3 +90,47 @@ func (p *productController) GetProductById(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, product)
 }
+
+func (p *productController) RemoveProductById(ctx *gin.Context) {
+
+	id := ctx.Param("productId")
+
+	if id == "" {
+
+		response := model.Response{
+			Mensagem: "Id do produto não pode ser null",
+		}
+
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	producId, err := strconv.Atoi(id)
+
+	if err != nil {
+		response := model.Response{
+			Mensagem: "Id do produto não precisa ser numero",
+		}
+
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	err = p.productUsecase.RemoveProductById(producId)
+	if err != nil {
+		if err.Error() == "produto não encontrado" {
+			response := model.Response{
+				Mensagem: "Produto não encontrado",
+			}
+			ctx.JSON(http.StatusNotFound, response)
+		} else {
+			response := model.Response{
+				Mensagem: "Erro ao remover produto",
+			}
+			ctx.JSON(http.StatusInternalServerError, response)
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, producId)
+}

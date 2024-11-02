@@ -52,3 +52,27 @@ func (pr *ProductRepository) GetProductById(productID int) (*model.Product, erro
 	}
 	return &product, nil
 }
+
+// RemoveProductById remove um produto pelo ID
+func (pr *ProductRepository) RemoveProductById(product_id int) error {
+	var product model.Product
+
+	// Verifica se o produto existe antes de tentar deletá-lo
+	result := pr.connection.First(&product, product_id)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil // Retorna nil para indicar que o produto não existe
+		}
+		fmt.Println(result.Error)
+		return result.Error
+	}
+
+	// Deleta o produto encontrado
+	deleteResult := pr.connection.Delete(&product)
+	if deleteResult.Error != nil {
+		fmt.Println(deleteResult.Error)
+		return deleteResult.Error
+	}
+
+	return nil
+}

@@ -41,3 +41,12 @@ func (pu *ProductUsecase) GetProductById(product_id int) (*model.Product, error)
 
 	return product, nil
 }
+
+func (pu *ProductUsecase) RemoveProductById(product_id int) error {
+	// Apenas verifica o erro ao chamar a função de remoção
+	err := pu.repository.RemoveProductById(product_id)
+	if err != nil {
+		return err
+	}
+	return nil
+}

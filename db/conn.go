@@ -1,12 +1,12 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"time"
 
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 const (
@@ -17,27 +17,28 @@ const (
 	dbname   = "postgres"
 )
 
-func ConnectDB() (*sql.DB, error) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
+// ConnectDB cria uma conexão com o banco de dados usando GORM e retorna um ponteiro para *gorm.DB
+func ConnectDB() (*gorm.DB, error) {
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
-	var db *sql.DB
+	var db *gorm.DB
 	var err error
 
+	// Tentativa de conexão com reconexão automática
 	for attempts := 1; attempts <= 5; attempts++ {
-		db, err = sql.Open("postgres", psqlInfo)
-		if err != nil {
-			log.Printf("Tentativa %d: Erro ao abrir conexão com o banco de dados: %v", attempts, err)
-		} else {
-			err = db.Ping()
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		if err == nil {
+			// Verifica a conexão com o banco de dados
+			sqlDB, _ := db.DB()
+			err = sqlDB.Ping()
 			if err == nil {
 				fmt.Println("Conectado ao banco de dados!")
 				return db, nil
 			}
 		}
 
-		log.Printf("Tentativa %d falhou. Retentando em 5 segundos...", attempts)
+		log.Printf("Tentativa %d de conexão ao banco de dados falhou: %v. Retentando em 5 segundos...", attempts, err)
 		time.Sleep(5 * time.Second)
 	}
 
